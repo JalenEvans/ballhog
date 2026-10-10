@@ -1,0 +1,76 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Multi-target the current LTS (.NET 8) and the newest installed SDK (.NET 10). -->
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+
+    <!-- NuGet package metadata. -->
+    <PackageId>BallhogBasketball</PackageId>
+
+    <!--
+      Assembly and root namespace are pinned explicitly so they stay stable and independent of
+      the .csproj filename (they must match the Ballhog.Basketball namespace tree).
+    -->
+    <AssemblyName>Ballhog.Basketball</AssemblyName>
+    <RootNamespace>Ballhog.Basketball</RootNamespace>
+
+    <Version>0.1.0-alpha.1</Version>
+    <!--
+      The Description embeds the mandatory attribution line verbatim (package metadata
+      requirement): consumers who never open the README still see the NBA disclaimer.
+    -->
+    <Description>Typed async .NET client for NBA statistics. Data via NBA.com/stats; not affiliated with or endorsed by the NBA.</Description>
+    <Authors>Jalen Evans</Authors>
+    <PackageTags>nba;basketball;statistics;sdk;nuget</PackageTags>
+
+    <!-- MIT via SPDX expression; NuGet embeds the license text from the expression itself. -->
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+    <!-- Package README is embedded as the package readme shown on nuget.org. -->
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- Packaging is an explicit step; never pack on every build. -->
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+
+    <!-- Validate package compatibility across target frameworks at pack time. -->
+    <EnablePackageValidation>true</EnablePackageValidation>
+
+    <!--
+      Library boundary analysis. Declaring both makes the library's own reflection and
+      serialization surface analyzable (and tells consumers the library is trim/AOT friendly).
+      JSON is handled by the source-generated BallhogJsonContext, so no runtime reflection-based
+      serialization sits on the boundary.
+    -->
+    <IsTrimmable>true</IsTrimmable>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Supplies IServiceCollection for the AddBallhogBasketball DI entry point. The version is pinned to
+      match the Microsoft.Extensions.* packages already used across the repository.
+    -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
+
+    <!--
+      Supplies AddHttpClient/IHttpClientFactory for the typed HTTP pipeline. The client graph
+      obtains its transport exclusively through the factory, never a static HttpClient.
+    -->
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.12" />
+
+    <!--
+      Public API lock: RS0016/RS0017 fail the build when the public surface drifts from
+      PublicAPI.Shipped.txt + PublicAPI.Unshipped.txt. Analyzer-only, never flowed to consumers.
+    -->
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.3.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>build;analyzers;buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Pack the package README (../../README.md = Ballhog.Basketball/README.md) as the package readme (NU5048/NU5125-safe layout: package root). -->
+    <None Include="../../README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

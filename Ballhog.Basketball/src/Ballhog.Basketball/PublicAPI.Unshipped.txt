@@ -1,0 +1,40 @@
+#nullable enable
+Ballhog.Basketball.BallhogClient
+Ballhog.Basketball.BallhogClient.BallhogClient(Ballhog.Basketball.IStatsProvider! provider) -> void
+Ballhog.Basketball.BallhogClient.GetTeamsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Ballhog.Basketball.Team!>!>!
+Ballhog.Basketball.BallhogOptions
+Ballhog.Basketball.BallhogOptions.BallhogOptions() -> void
+Ballhog.Basketball.BallhogOptions.Http.get -> Ballhog.Basketball.Http.BallhogHttpOptions!
+Ballhog.Basketball.BallhogOptions.SourcePacingInterval.get -> System.TimeSpan
+Ballhog.Basketball.BallhogOptions.SourcePacingInterval.set -> void
+Ballhog.Basketball.BallhogOptions.TeamsCacheTtl.get -> System.TimeSpan
+Ballhog.Basketball.BallhogOptions.TeamsCacheTtl.set -> void
+Ballhog.Basketball.Http.BallhogHttpException
+Ballhog.Basketball.Http.BallhogHttpException.BallhogHttpException() -> void
+Ballhog.Basketball.Http.BallhogHttpException.BallhogHttpException(string? message) -> void
+Ballhog.Basketball.Http.BallhogHttpException.BallhogHttpException(string? message, System.Exception? innerException) -> void
+Ballhog.Basketball.Http.BallhogHttpException.BallhogHttpException(string? message, System.Net.HttpStatusCode? statusCode) -> void
+Ballhog.Basketball.Http.BallhogHttpException.BallhogHttpException(string? message, System.Net.HttpStatusCode? statusCode, System.Exception? innerException) -> void
+Ballhog.Basketball.Http.BallhogHttpException.StatusCode.get -> System.Net.HttpStatusCode?
+Ballhog.Basketball.Http.BallhogHttpOptions
+Ballhog.Basketball.Http.BallhogHttpOptions.BallhogHttpOptions() -> void
+Ballhog.Basketball.Http.BallhogHttpOptions.MaxRetryAttempts.get -> int
+Ballhog.Basketball.Http.BallhogHttpOptions.MaxRetryAttempts.set -> void
+Ballhog.Basketball.Http.BallhogHttpOptions.Proxy.get -> System.Uri?
+Ballhog.Basketball.Http.BallhogHttpOptions.Proxy.set -> void
+Ballhog.Basketball.Http.BallhogHttpOptions.RetryBaseDelay.get -> System.TimeSpan
+Ballhog.Basketball.Http.BallhogHttpOptions.RetryBaseDelay.set -> void
+Ballhog.Basketball.Http.BallhogHttpOptions.RetryMaxDelay.get -> System.TimeSpan
+Ballhog.Basketball.Http.BallhogHttpOptions.RetryMaxDelay.set -> void
+Ballhog.Basketball.IBallhogClient
+Ballhog.Basketball.IBallhogClient.GetTeamsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Ballhog.Basketball.Team!>!>!
+Ballhog.Basketball.IStatsProvider
+Ballhog.Basketball.IStatsProvider.GetTeamsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Ballhog.Basketball.Team!>!>!
+Ballhog.Basketball.Team
+Ballhog.Basketball.Team.Abbreviation.get -> string!
+Ballhog.Basketball.Team.Abbreviation.init -> void
+Ballhog.Basketball.Team.Team(int TeamId, string! Abbreviation) -> void
+Ballhog.Basketball.Team.TeamId.get -> int
+Ballhog.Basketball.Team.TeamId.init -> void
+Microsoft.Extensions.DependencyInjection.ServiceCollectionExtensions
+static Microsoft.Extensions.DependencyInjection.ServiceCollectionExtensions.AddBallhogBasketball(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Ballhog.Basketball.BallhogOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
