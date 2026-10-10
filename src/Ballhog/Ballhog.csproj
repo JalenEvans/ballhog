@@ -4,12 +4,22 @@
     <!-- Multi-target the current LTS (.NET 8) and the newest installed SDK (.NET 10). -->
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
 
-    <!-- NuGet package metadata. License/README/attribution are added in a later chunk. -->
+    <!-- NuGet package metadata. -->
     <PackageId>ballhog</PackageId>
     <Version>0.1.0-alpha.1</Version>
-    <Description>Typed async .NET client for NBA statistics.</Description>
+    <!--
+      The Description embeds the mandatory attribution line verbatim (package metadata
+      requirement): consumers who never open the README still see the NBA disclaimer.
+    -->
+    <Description>Typed async .NET client for NBA statistics. Data via NBA.com/stats; not affiliated with or endorsed by the NBA.</Description>
     <Authors>Jalen Evans</Authors>
     <PackageTags>nba;basketball;statistics;sdk;nuget</PackageTags>
+
+    <!-- MIT via SPDX expression; NuGet embeds the license text from the expression itself. -->
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+    <!-- Repo-root README is embedded as the package readme shown on nuget.org. -->
+    <PackageReadmeFile>README.md</PackageReadmeFile>
 
     <!-- Packaging is an explicit step; never pack on every build. -->
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
@@ -39,6 +49,11 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>build;analyzers;buildtransitive</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Pack the repo-root README as the package readme (NU5048/NU5125-safe layout: package root). -->
+    <None Include="../../README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>

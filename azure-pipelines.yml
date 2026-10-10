@@ -1,0 +1,112 @@
+# Ballhog CI pipeline (Azure DevOps — fleet convention).
+#
+# Scope:
+#   * Restore, build (0 warnings/0 errors enforced repo-wide via TreatWarningsAsErrors),
+#     test (both TFMs; offline unit tests, no live NBA egress required), and
+#     pack the ballhog NuGet package as a pipeline artifact ("publish dry run").
+#   * Publish-only real NuGet push is deliberately NOT part of this pipeline: see the
+#     commented-out step at the bottom. Publishing is a separate, gated manual action.
+#   * A trim/AOT smoke job builds the sample with PublishTrimmed to keep the library
+#     trim-compatible. It never RUNS the sample in CI — the sample needs live
+#     residential egress to stats.nba.com, which CI runners do not have.
+
+trigger:
+  - '*'
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  buildConfiguration: Release
+
+stages:
+  - stage: BuildTestPack
+    displayName: Build, test, pack
+    jobs:
+      - job: CI
+        displayName: Build + test + pack
+        steps:
+          # Both SDKs are required: the library multi-targets net8.0 (LTS) and net10.0.
+          - task: UseDotNet@2
+            displayName: Install .NET SDK 10.x
+            inputs:
+              packageType: sdk
+              version: 10.x
+
+          - task: UseDotNet@2
+            displayName: Install .NET SDK 8.x
+            inputs:
+              packageType: sdk
+              version: 8.x
+
+          - script: dotnet restore Ballhog.sln
+            displayName: dotnet restore
+
+          - script: dotnet build Ballhog.sln -c $(buildConfiguration) --no-restore
+            displayName: dotnet build (Release, warnings as errors)
+
+          # Runs all tests across both target frameworks. The suite is offline by default;
+          # live-source integration tests are opt-in and not enabled here.
+          - script: dotnet test tests/Ballhog.Tests/Ballhog.Tests.csproj -c $(buildConfiguration) --no-build
+            displayName: dotnet test (net8.0 + net10.0)
+
+          # "Publish dry run": packing validates package metadata (license expression,
+          # embedded readme, description/attribution) without pushing anything anywhere.
+          - script: dotnet pack src/Ballhog/Ballhog.csproj -c $(buildConfiguration) --no-build -o $(Build.ArtifactStagingDirectory)/packages
+            displayName: dotnet pack (dry run)
+
+          - task: PublishBuildArtifacts@1
+            displayName: Publish 'packages' artifact
+            inputs:
+              pathToPublish: $(Build.ArtifactStagingDirectory)/packages
+              artifactName: packages
+
+      # ---------------------------------------------------------------------------
+      # Trim/AOT smoke job: build-level only. Publishes the sample trimmed to prove
+      # the library is trim-compatible (JSON is source-generated, so no reflection
+      # trim warnings should appear). The published app is NEVER executed in CI
+      # because it requires live residential egress to stats.nba.com.
+      - job: TrimSmoke
+        displayName: Trim smoke (build-level only)
+        steps:
+          - task: UseDotNet@2
+            displayName: Install .NET SDK 10.x
+            inputs:
+              packageType: sdk
+              version: 10.x
+
+          - task: UseDotNet@2
+            displayName: Install .NET SDK 8.x
+            inputs:
+              packageType: sdk
+              version: 8.x
+
+          - script: >
+              dotnet publish samples/Ballhog.Sample/Ballhog.Sample.csproj
+              -c Release
+              -r linux-x64
+              --self-contained
+              -p:PublishTrimmed=true
+              -o $(Build.ArtifactStagingDirectory)/trimmed
+            displayName: dotnet publish --publish-trimmed (do not run)
+
+# ---------------------------------------------------------------------------
+# REAL NUGET PUBLISH — DISABLED; MANUAL, GATED ACTION ONLY.
+#
+# Never enable this step in PR/branch CI. Pushing to nuget.org is irreversible for
+# a given version and is performed manually (or via an environment with approvals)
+# AFTER a release decision by the repo owner:
+#
+#   1. Run/pull the 'packages' artifact produced above (that is the dry run).
+#   2. Verify the .nupkg contents (lib/net8.0 + lib/net10.0, XML docs, README,
+#      nuspec license expression MIT, attribution in Description).
+#   3. Create a NuGet.org API key scoped to the 'ballhog' package, store it as a
+#      secret pipeline variable named NUGET_API_KEY (secret, not checked in).
+#   4. Run the push below as a manual pipeline against a tagged release build:
+#
+# - script: >
+#     dotnet nuget push "$(Build.ArtifactStagingDirectory)/packages/*.nupkg"
+#     --api-key $(NUGET_API_KEY)
+#     --source https://api.nuget.org/v3/index.json
+#     --skip-duplicate
+#   displayName: dotnet nuget push (manual, gated — never in PR CI)
