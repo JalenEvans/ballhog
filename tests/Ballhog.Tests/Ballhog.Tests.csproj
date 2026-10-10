@@ -1,0 +1,86 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Ballhog test project (chunk C-002: test infrastructure substrate only).
+
+    Multi-targets the same frameworks as the library so every test can run against
+    both the .NET 8 (LTS) and .NET 10 builds.
+
+    Why xUnit v3 (VSTest-only flavor): it ships a first-class dynamic-skip API
+    (Assert.Skip / Assert.SkipUnless), so live tests can skip themselves at run
+    time when the BALLHOG_LIVE environment variable is unset, without pulling in
+    an extra package. It supports net8.0 and net10.0 and is the current major.
+
+    Why xunit.v3.core.mtp-off (not the default xunit.v3 meta-package): the default
+    xunit.v3 package forces Microsoft Testing Platform (MTP) into the project.
+    MTP's MSBuild targets refuse the VSTest target on the .NET 10 SDK ("Testing
+    with VSTest target is no longer supported by Microsoft.Testing.Platform on
+    .NET 10 SDK and later"), which breaks the required Microsoft.NET.Test.Sdk +
+    xunit.runner.visualstudio stack. xunit.v3.core.mtp-off is the officially
+    documented "VSTest-only" variant: no MTP assemblies, a plain test library that
+    the VSTest adapter drives in process, so `dotnet test` keeps the classic
+    runner semantics (traits, filters, runsettings).
+
+    Why NetArchTest.Rules (not ArchUnitNET): it is a single small netstandard2.0
+    assembly with no runtime dependencies, which keeps restore/build lightweight
+    and offline-friendly. ArchUnitNET currently ships only as a 2.4.0-alpha
+    prerelease, which is not appropriate for a stable test substrate.
+  -->
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+
+    <!--
+      No OutputType override: xunit.v3.core.mtp-off marks the project as a test
+      library, which is what the VSTest adapter (xunit.runner.visualstudio) drives.
+    -->
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+
+    <!--
+      Test classes are not part of any shipped API surface and must not be forced
+      to carry XML documentation. Override the repo-wide GenerateDocumentationFile=true
+      from Directory.Build.props while keeping TreatWarningsAsErrors=true intact.
+    -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+
+    <!--
+      Apply the repo default test filter (exclude Category=Live) to every
+      `dotnet test` run unless a developer overrides it with an explicit
+      filter argument on the command line. See tests/README.md.
+    -->
+    <RunSettingsFilePath>$(MSBuildProjectDirectory)/test.runsettings</RunSettingsFilePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageReference Include="xunit.v3.core.mtp-off" Version="4.0.2" />
+    <PackageReference Include="xunit.v3.assert" Version="4.0.2" />
+    <PackageReference Include="xunit.analyzers" Version="2.2.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+
+    <!-- Test-utility packages required by later chunks (DI, Http, fake time). -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.10.0" />
+
+    <!-- Architecture tests (not yet written; package is wired up for later chunks). -->
+    <PackageReference Include="NetArchTest.Rules" Version="1.3.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Ballhog/Ballhog.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- JSON fixtures are copied next to the test assembly and loaded fully offline. -->
+    <None Update="Fixtures/**/*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

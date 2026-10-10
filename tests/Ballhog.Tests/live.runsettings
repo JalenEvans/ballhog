@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Optional settings file for running LIVE tests (tests that call external services).
+
+  The project's default test.runsettings applies the repo-wide default filter
+  Category != Live. VSTest ANDs the runsettings filter with any command-line
+  filter, so requesting "Category=Live" on the command line alone still excludes
+  live tests. To run live tests, pass THIS settings file (no default filter) plus
+  an explicit filter, and set BALLHOG_LIVE=1. Using dots for the flags:
+
+      BALLHOG_LIVE=1 dotnet test tests/Ballhog.Tests/Ballhog.Tests.csproj -c Release
+          .settings tests/Ballhog.Tests/live.runsettings .filter "Category=Live"
+
+  Without BALLHOG_LIVE=1 the same command reports live tests as SKIPPED instead
+  of running them. See tests/README.md.
+-->
+<RunSettings>
+  <RunConfiguration>
+    <!-- Intentionally no TestCaseFilter: live test selection is left to the command line. -->
+  </RunConfiguration>
+</RunSettings>

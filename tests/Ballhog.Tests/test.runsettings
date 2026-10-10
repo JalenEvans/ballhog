@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Default VSTest settings for Ballhog.Tests.
+
+  TestCaseFilter is the source of truth for "live tests are excluded by default":
+  every `dotnet test` run (including CI) starts with Category != Live. Developers
+  who want live tests override the filter explicitly, for example:
+
+      dotnet test tests/Ballhog.Tests/Ballhog.Tests.csproj -c Release
+          then pass an explicit filter argument such as Category=Live
+
+  Live tests are also individually self-gated: a test marked
+  [Trait("Category", "Live")] must call LiveTestGate.SkipUnlessEnabled() (or
+  Assert.SkipUnless) so it reports as SKIPPED rather than FAILED when BALLHOG_LIVE
+  is not set to 1.
+-->
+<RunSettings>
+  <RunConfiguration>
+    <TestCaseFilter>Category!=Live</TestCaseFilter>
+  </RunConfiguration>
+</RunSettings>
