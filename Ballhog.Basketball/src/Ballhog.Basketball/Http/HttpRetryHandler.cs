@@ -111,18 +111,23 @@ internal sealed class HttpRetryHandler : DelegatingHandler
 
                 if (!ReferenceEquals(completed, sendTask))
                 {
+                    // Dispose/observe the abandoned attempt before any early exit so a
+                    // late-completing response is never leaked, even if the caller-cancel
+                    // check below short-circuits first. DiscardAbandonedAttempt only schedules
+                    // a continuation, so it never blocks the calling thread.
+                    DiscardAbandonedAttempt(sendTask);
+
                     // The timeout leg won. A cancelled caller token means the caller
                     // cancelled rather than the attempt timing out, so propagate that
                     // unwrapped instead of treating it as a retryable failure.
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    DiscardAbandonedAttempt(sendTask);
-
                     if (attempt >= maxAttempts)
                     {
                         throw new BallhogHttpException(
                             "The NBA request timed out after exhausting all retry attempts.",
-                            statusCode: null);
+                            statusCode: null,
+                            GetAbandonedAttemptException(sendTask));
                     }
 
                     await DelayAsync(GetExponentialBackoff(attempt), cancellationToken).ConfigureAwait(false);
@@ -224,6 +229,18 @@ internal sealed class HttpRetryHandler : DelegatingHandler
             TaskContinuationOptions.ExecuteSynchronously,
             TaskScheduler.Default);
     }
+
+    /// <summary>
+    /// Builds the diagnostic inner exception for a timeout that exhausted every retry attempt:
+    /// the abandoned attempt's own fault when it has already faulted, otherwise a
+    /// <see cref="TimeoutException"/>. Never blocks and never throws.
+    /// </summary>
+    /// <param name="sendTask">The attempt task that lost the timeout race.</param>
+    /// <returns>An exception describing why the abandoned attempt did not complete.</returns>
+    private static Exception GetAbandonedAttemptException(Task<HttpResponseMessage> sendTask)
+        => sendTask.IsFaulted && sendTask.Exception is { } fault
+            ? fault
+            : new TimeoutException("The NBA request timed out after exhausting all retry attempts.");
 
     /// <summary>
     /// Computes the deterministic exponential backoff for the attempt that just failed.

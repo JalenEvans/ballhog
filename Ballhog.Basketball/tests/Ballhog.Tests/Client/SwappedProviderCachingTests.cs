@@ -8,11 +8,11 @@ using Xunit;
 namespace Ballhog.Tests.Client;
 
 /// <summary>
-/// F1 regression tests (Offensive-Coach fix, swappable-source seam): swapping
-/// <see cref="IStatsProvider"/> through either supported DI injection style must keep the
-/// SDK's cache-aside TTL, single-flight de-duplication, and shared source pacing ON TOP of
-/// the swapped source. These tests resolve the full <c>AddBallhogBasketball</c> container
-/// offline: fake time drives TTL and pacing, and a counting <see cref="FakeStatsProvider"/>
+/// F1 regression tests (Offensive-Coach fix, swappable-source seam): verifies the SDK's TTL
+/// cache and single-flight apply over a swapped <see cref="IStatsProvider"/> source through
+/// either supported DI injection style; pacing over the decorator is covered in
+/// <c>CachingStatsProviderTests</c>. These tests resolve the full <c>AddBallhogBasketball</c>
+/// container offline: fake time drives TTL expiry, and a counting <see cref="FakeStatsProvider"/>
 /// stands in as the swapped source.
 /// </summary>
 /// <remarks>
