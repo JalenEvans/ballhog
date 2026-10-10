@@ -41,7 +41,6 @@ public sealed class PublicSurfaceTests
     [
         "Ballhog.Providers.StatsNbaProvider",
         "Ballhog.Providers.TeamYearsResponse",
-        "Ballhog.Providers.TeamYearsResultSets",
         "Ballhog.Providers.BallhogJsonContext",
         "Ballhog.Caching.CachingStatsProvider",
         "Ballhog.Caching.BallhogCache",

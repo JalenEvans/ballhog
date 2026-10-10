@@ -26,6 +26,15 @@
 
     <!-- Validate package compatibility across target frameworks at pack time. -->
     <EnablePackageValidation>true</EnablePackageValidation>
+
+    <!--
+      Library boundary analysis. Declaring both makes the library's own reflection and
+      serialization surface analyzable (and tells consumers the library is trim/AOT friendly).
+      JSON is handled by the source-generated BallhogJsonContext, so no runtime reflection-based
+      serialization sits on the boundary.
+    -->
+    <IsTrimmable>true</IsTrimmable>
+    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>

@@ -27,6 +27,13 @@ public sealed class StatsNbaProviderTests
     private const string CommonTeamYearsFixture = "teams.commonteamyears";
 
     /// <summary>
+    /// The same <c>commonteamyears</c> rows wrapped in the v2-style single-element
+    /// <c>resultSets</c> array instead of the v3 object, used to prove both shapes parse
+    /// identically.
+    /// </summary>
+    private const string CommonTeamYearsArrayFixture = "teams.commonteamyears.array";
+
+    /// <summary>
     /// The 30 active franchises in the exact order the provider must return them:
     /// ascending by <see cref="Team.TeamId"/>. The historical rows (SEA, VAN, NJN) are
     /// intentionally absent.
@@ -119,6 +126,33 @@ public sealed class StatsNbaProviderTests
         Assert.Contains(new Team(1610612760, "OKC"), teams);
     }
 
+    /// <summary>
+    /// The endpoint is shape-inconsistent about <c>resultSets</c>: the documented v3 form is a
+    /// single object, while some responses emit a v2-style single-element array. This proves
+    /// the array form maps to exactly the same 30 active teams, in the same order, as the
+    /// object form.
+    /// </summary>
+    [Fact]
+    public async Task GetTeamsAsync_parses_the_v2_style_array_resultSets_identically_to_the_object_form()
+    {
+        (StatsNbaProvider arrayProvider, _) = CreateProvider(ArrayResponse());
+        (StatsNbaProvider objectProvider, _) = CreateProvider(SuccessResponse());
+
+        IReadOnlyList<Team> arrayTeams = await arrayProvider.GetTeamsAsync(TestContext.Current.CancellationToken);
+        IReadOnlyList<Team> objectTeams = await objectProvider.GetTeamsAsync(TestContext.Current.CancellationToken);
+
+        // Exactly the 30 active franchises, sorted ascending by id, historical rows excluded.
+        Assert.Equal(30, arrayTeams.Count);
+        Assert.Equal(ExpectedTeams, arrayTeams);
+        Assert.Contains(new Team(1610612737, "ATL"), arrayTeams);
+        Assert.Contains(new Team(1610612760, "OKC"), arrayTeams);
+
+        // The v2-style array parses to the exact same sequence as the v3 object form.
+        Assert.True(
+            arrayTeams.SequenceEqual(objectTeams),
+            "The array-form resultSets must parse identically to the object form.");
+    }
+
     [Fact]
     public async Task GetTeamsAsync_throws_BallhogHttpException_on_non_success_response()
     {
@@ -148,14 +182,29 @@ public sealed class StatsNbaProviderTests
 
     /// <summary>
     /// Returns an <see cref="HttpStatusCode.OK"/> response whose body is the pinned
-    /// <c>commonteamyears</c> fixture. The fixture is JSONC (provenance comments and
-    /// trailing commas); <see cref="FixtureLoader"/> tolerates both, and the node is
-    /// re-emitted as strict JSON so the provider only ever sees what the real Stats API
-    /// would send.
+    /// <c>commonteamyears</c> fixture. The fixture is JSONC: the provenance comments
+    /// are the human aid, and <see cref="FixtureLoader"/> tolerates trailing commas too;
+    /// the node is re-emitted as strict JSON so the provider only ever sees what the real
+    /// Stats API would send.
     /// </summary>
     private static HttpResponseMessage SuccessResponse()
     {
         string json = FixtureLoader.Load<JsonObject>(CommonTeamYearsFixture).ToJsonString();
+
+        return new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(json, Encoding.UTF8, "application/json"),
+        };
+    }
+
+    /// <summary>
+    /// Returns an <see cref="HttpStatusCode.OK"/> response carrying the v2-style
+    /// <c>resultSets</c>-array fixture, re-emitted as strict JSON exactly like
+    /// <see cref="SuccessResponse"/>.
+    /// </summary>
+    private static HttpResponseMessage ArrayResponse()
+    {
+        string json = FixtureLoader.Load<JsonObject>(CommonTeamYearsArrayFixture).ToJsonString();
 
         return new HttpResponseMessage(HttpStatusCode.OK)
         {

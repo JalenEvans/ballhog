@@ -2,8 +2,9 @@
   // Provenance: hand-authored sample of the v3 "commonteamyears" response shape
   // (LeagueID=00). This is NOT yet captured from a live Stats NBA call; live parity
   // is deferred to a Category=Live test (BALLHOG-10 / chunk C-005). The file is kept
-  // as JSONC for human provenance; the provider test normalizes comments/trailing
-  // commas away before handing this body to the provider.
+  // as JSONC for human provenance: the provenance comments are the human aid, and the
+  // loader tolerates trailing commas too; the provider test re-emits the node as strict
+  // JSON before handing this body to the provider.
   "resource": "commonteamyears",
   "parameters": { "LeagueID": "00" },
   "resultSets": {

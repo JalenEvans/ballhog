@@ -52,7 +52,8 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton(TimeProvider.System);
 
         // Per-container cache and pacing gate. Both are internal collaborators of the provider and
-        // hold no process-global state.
+        // hold no process-global state. They stay singleton (unlike the transient provider/client)
+        // so the TTL and pacing interval are shared across every resolution in this container.
         services.TryAddSingleton(sp => new BallhogCache(
             sp.GetRequiredService<TimeProvider>(),
             sp.GetRequiredService<BallhogOptions>().TeamsCacheTtl));
@@ -93,6 +94,10 @@ public static class ServiceCollectionExtensions
                 if (options.Http.Proxy is not null)
                 {
                     handler.Proxy = new WebProxy(options.Http.Proxy);
+
+                    // Be explicit: a proxy is only used when UseProxy is set. Relying on the
+                    // SocketsHttpHandler default is fragile across runtime versions, so pin it.
+                    handler.UseProxy = true;
                 }
 
                 return handler;
@@ -103,15 +108,22 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredService<BallhogOptions>().Http));
 
         // Default provider: the HTTP-backed StatsNbaProvider wrapped in the cache-aside/pacing
-        // decorator. TryAddSingleton keeps the seam swappable: a consumer may pre-register or
-        // Replace(IStatsProvider) with an alternative, and this registration respects that.
-        services.TryAddSingleton<IStatsProvider>(sp => new CachingStatsProvider(
+        // decorator. It is transient (not singleton) so each resolution gets the typed client
+        // from IHttpClientFactory, letting the factory rotate the underlying HttpClient,
+        // SocketsHttpHandler, and proxy over time. TryAddTransient keeps the seam swappable: a
+        // consumer may pre-register or Replace(IStatsProvider) with an alternative, and this
+        // registration respects that. The cache and pacer it reads remain singletons, so shared
+        // TTL and pacing are preserved across the transient instances.
+        services.TryAddTransient<IStatsProvider>(sp => new CachingStatsProvider(
             sp.GetRequiredService<StatsNbaProvider>(),
             sp.GetRequiredService<BallhogCache>(),
             sp.GetRequiredService<SourcePacer>(),
             sp.GetRequiredService<BallhogOptions>().TeamsCacheTtl));
 
-        services.TryAddSingleton<IBallhogClient, BallhogClient>();
+        // The client facade is stateless, so it is transient too: each resolution observes the
+        // current provider (and therefore the factory-rotated transport) rather than capturing
+        // the first one for the container's lifetime.
+        services.TryAddTransient<IBallhogClient, BallhogClient>();
 
         return services;
     }

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Ballhog test project (chunk C-002: test infrastructure substrate only).
+    Ballhog test project (chunks C-002..C-008: the full offline test suite).
 
     Multi-targets the same frameworks as the library so every test can run against
     both the .NET 8 (LTS) and .NET 10 builds.
@@ -20,11 +20,6 @@
     documented "VSTest-only" variant: no MTP assemblies, a plain test library that
     the VSTest adapter drives in process, so `dotnet test` keeps the classic
     runner semantics (traits, filters, runsettings).
-
-    Why NetArchTest.Rules (not ArchUnitNET): it is a single small netstandard2.0
-    assembly with no runtime dependencies, which keeps restore/build lightweight
-    and offline-friendly. ArchUnitNET currently ships only as a 2.4.0-alpha
-    prerelease, which is not appropriate for a stable test substrate.
   -->
 
   <PropertyGroup>
@@ -65,16 +60,18 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
 
-    <!-- Test-utility packages required by later chunks (DI, Http, fake time). -->
+    <!-- Test-utility packages used across the suite (DI, Http, fake time). -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.12" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.10.0" />
-
-    <!-- Architecture tests (not yet written; package is wired up for later chunks). -->
-    <PackageReference Include="NetArchTest.Rules" Version="1.3.2" />
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      The library under test. Architecture tests (PublicSurfaceTests) inspect this
+      compiled assembly with plain System.Reflection, so no architecture-test package
+      is required.
+    -->
     <ProjectReference Include="../../src/Ballhog/Ballhog.csproj" />
   </ItemGroup>
 

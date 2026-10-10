@@ -1,4 +1,5 @@
 using Ballhog;
+using Ballhog.Http;
 using Microsoft.Extensions.DependencyInjection;
 
 // Wire the client exactly as a consumer would: register Ballhog with its defaults and
@@ -28,6 +29,17 @@ try
 catch (OperationCanceledException)
 {
     Console.Error.WriteLine("The request was canceled.");
+    return 1;
+}
+catch (BallhogHttpException exception)
+{
+    Console.Error.WriteLine($"The request failed: {exception.Message}");
+
+    // Mirror the README's egress note: this source frequently rejects datacenter/VPN egress,
+    // so a failure here is most often an environment problem, not a coding one.
+    Console.Error.WriteLine(
+        "stats.nba.com requires residential egress or a proxy. See the README's " +
+        "'Egress requirement and proxy' section.");
     return 1;
 }
 

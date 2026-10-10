@@ -20,6 +20,17 @@ public static class FixtureLoader
         AllowTrailingCommas = true,
     };
 
+    /// <summary>
+    /// Document/node parse options matching <see cref="SerializerOptions"/>, so every loader
+    /// entry point tolerates the JSONC (provenance comments and trailing commas) the fixture
+    /// convention advertises.
+    /// </summary>
+    private static readonly JsonDocumentOptions DocumentOptions = new()
+    {
+        CommentHandling = JsonCommentHandling.Skip,
+        AllowTrailingCommas = true,
+    };
+
     /// <summary>Returns the absolute path of a fixture by name, appending <c>.json</c> if needed.</summary>
     public static string GetPath(string fixtureName)
     {
@@ -42,7 +53,7 @@ public static class FixtureLoader
     {
         string path = GetPath(fixtureName);
         EnsureFixtureExists(path, fixtureName);
-        return JsonDocument.Parse(File.ReadAllText(path));
+        return JsonDocument.Parse(File.ReadAllText(path), DocumentOptions);
     }
 
     /// <summary>
@@ -55,7 +66,7 @@ public static class FixtureLoader
         string path = GetPath(fixtureName);
         EnsureFixtureExists(path, fixtureName);
 
-        return JsonNode.Parse(File.ReadAllText(path)) as JsonObject
+        return JsonNode.Parse(File.ReadAllText(path), documentOptions: DocumentOptions) as JsonObject
             ?? throw new InvalidDataException($"Fixture '{fixtureName}' is not a JSON object.");
     }
 

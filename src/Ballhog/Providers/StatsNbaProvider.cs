@@ -72,29 +72,60 @@ internal sealed class StatsNbaProvider : IStatsProvider
             .DeserializeAsync(stream, BallhogJsonContext.Default.TeamYearsResponse, cancellationToken)
             .ConfigureAwait(false);
 
-        return payload is null ? Array.Empty<Team>() : MapTeams(payload);
+        // The resultSets member is shape-inconsistent (v3 object vs v2-style single-element
+        // array); normalize it to the single result-set object before mapping. A null payload
+        // or an absent/empty result set yields an empty team list.
+        return payload is null
+            ? Array.Empty<Team>()
+            : MapTeams(NormalizeResultSets(payload.ResultSets));
     }
 
     /// <summary>
-    /// Projects a parsed <c>commonteamyears</c> payload onto the active teams, sorted
+    /// Normalizes the response's <c>resultSets</c> member to the single result-set object.
+    /// </summary>
+    /// <param name="resultSets">The raw member value, or <see langword="null"/> when absent.</param>
+    /// <returns>
+    /// The result-set object when the member is an object, its first element when it is a
+    /// non-empty v2-style array, or <see langword="default"/> (an <see cref="JsonValueKind.Undefined"/>
+    /// element) when the member is absent, an empty array, or any other shape.
+    /// </returns>
+    private static JsonElement NormalizeResultSets(JsonElement? resultSets)
+    {
+        if (resultSets is not { } element)
+        {
+            return default;
+        }
+
+        return element.ValueKind switch
+        {
+            JsonValueKind.Object => element,
+            // v2-style: a single-element array holding the one result set. An empty array
+            // carries no result set, which the mapper treats as an empty team list.
+            JsonValueKind.Array when element.GetArrayLength() > 0 => element[0],
+            _ => default,
+        };
+    }
+
+    /// <summary>
+    /// Projects a parsed <c>commonteamyears</c> result set onto the active teams, sorted
     /// ascending by <see cref="Team.TeamId"/>.
     /// </summary>
-    /// <param name="payload">The parsed response body.</param>
+    /// <param name="resultSets">The normalized result-set object, or <see langword="default"/>.</param>
     /// <returns>
     /// The active teams, excluding historical rows whose <c>MAX_YEAR</c> predates
     /// <see cref="FirstActiveSeasonYear"/>. An empty list is returned when the response
     /// carries no usable result set.
     /// </returns>
-    private static IReadOnlyList<Team> MapTeams(TeamYearsResponse payload)
+    private static IReadOnlyList<Team> MapTeams(JsonElement resultSets)
     {
-        if (payload.ResultSets is not { RowSet: { } rows } resultSets)
+        if (!TryExtractResultSet(resultSets, out string[] headers, out JsonElement[][] rows))
         {
             return Array.Empty<Team>();
         }
 
-        int abbreviationIndex = IndexOfHeader(resultSets.Headers, "ABBREVIATION");
-        int teamIdIndex = IndexOfHeader(resultSets.Headers, "TEAM_ID");
-        int maxYearIndex = IndexOfHeader(resultSets.Headers, "MAX_YEAR");
+        int abbreviationIndex = IndexOfHeader(headers, "ABBREVIATION");
+        int teamIdIndex = IndexOfHeader(headers, "TEAM_ID");
+        int maxYearIndex = IndexOfHeader(headers, "MAX_YEAR");
 
         if (abbreviationIndex < 0 || teamIdIndex < 0 || maxYearIndex < 0)
         {
@@ -133,6 +164,85 @@ internal sealed class StatsNbaProvider : IStatsProvider
         teams.Sort(static (left, right) => left.TeamId.CompareTo(right.TeamId));
 
         return teams;
+    }
+
+    /// <summary>
+    /// Extracts the <c>headers</c> and <c>rowSet</c> members from a normalized result-set
+    /// object without going through a typed DTO, so both response shapes share one mapping
+    /// path.
+    /// </summary>
+    /// <param name="resultSets">The normalized result-set object.</param>
+    /// <param name="headers">The column names when extraction succeeds; otherwise empty.</param>
+    /// <param name="rows">
+    /// The rows when extraction succeeds; otherwise empty. Each row is an array of
+    /// <see cref="JsonElement"/> cells; a non-array row is represented as an empty array so
+    /// its cells simply fail to read and the row is skipped.
+    /// </param>
+    /// <returns><see langword="true"/> when both members were present in the expected shapes.</returns>
+    private static bool TryExtractResultSet(
+        JsonElement resultSets,
+        out string[] headers,
+        out JsonElement[][] rows)
+    {
+        headers = Array.Empty<string>();
+        rows = Array.Empty<JsonElement[]>();
+
+        if (resultSets.ValueKind != JsonValueKind.Object
+            || !TryGetResultSetProperty(resultSets, "headers", out JsonElement headersElement)
+            || headersElement.ValueKind != JsonValueKind.Array
+            || !TryGetResultSetProperty(resultSets, "rowSet", out JsonElement rowSetElement)
+            || rowSetElement.ValueKind != JsonValueKind.Array)
+        {
+            return false;
+        }
+
+        headers = new string[headersElement.GetArrayLength()];
+        int headerIndex = 0;
+        foreach (JsonElement header in headersElement.EnumerateArray())
+        {
+            headers[headerIndex++] = header.ValueKind == JsonValueKind.String
+                ? header.GetString() ?? string.Empty
+                : header.ToString();
+        }
+
+        rows = new JsonElement[rowSetElement.GetArrayLength()][];
+        int rowIndex = 0;
+        foreach (JsonElement row in rowSetElement.EnumerateArray())
+        {
+            rows[rowIndex++] = row.ValueKind == JsonValueKind.Array
+                ? row.EnumerateArray().ToArray()
+                : Array.Empty<JsonElement>();
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Reads a property from a result-set object by its pinned name, falling back to an
+    /// ordinal-ignore-case match so a casing variation in the source does not break mapping.
+    /// </summary>
+    /// <param name="element">The result-set object.</param>
+    /// <param name="name">The pinned property name.</param>
+    /// <param name="value">The property value when found; otherwise <see langword="default"/>.</param>
+    /// <returns><see langword="true"/> when the property was found; otherwise <see langword="false"/>.</returns>
+    private static bool TryGetResultSetProperty(JsonElement element, string name, out JsonElement value)
+    {
+        if (element.TryGetProperty(name, out value))
+        {
+            return true;
+        }
+
+        foreach (JsonProperty property in element.EnumerateObject())
+        {
+            if (string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase))
+            {
+                value = property.Value;
+                return true;
+            }
+        }
+
+        value = default;
+        return false;
     }
 
     /// <summary>

@@ -39,7 +39,7 @@ Console.WriteLine($"Total teams: {teams.Count}");
 - **Shared source pacing.** Consecutive outbound source requests are separated by a minimum interval (default: ~1 second, `BallhogOptions.SourcePacingInterval`) across the whole client graph. Pacing applies only on cache misses.
 - **Retry/backoff honoring `Retry-After`.** Transient failures are retried with exponential backoff (default: 3 attempts, 500 ms base, 10 s cap — `BallhogOptions.Http`). On HTTP 429, the server's `Retry-After` header is honored when present. HTTP 403 is not retried (it indicates blocked egress, not a transient fault).
 - **2026 NBA request headers.** Every request carries a Chrome-like `User-Agent`, `Referer: https://www.nba.com/`, and `Accept-Encoding: gzip, deflate, br`.
-- **`IStatsProvider` swappable seam.** The provider behind `IBallhogClient` is registered with `TryAddSingleton`, so you can pre-register or `Replace()` an alternative `IStatsProvider` (a fake in tests, or a different backing source) without touching transport or caching.
+- **`IStatsProvider` swappable seam.** The default caching provider behind `IBallhogClient` is registered with `TryAddTransient`, so you can pre-register or `Replace()` an alternative `IStatsProvider` (a fake in tests, or a different backing source) without touching transport or caching.
 - **Typed HTTP via `IHttpClientFactory`.** Transport comes exclusively from `IHttpClientFactory` — no static `HttpClient` anywhere.
 
 ## Egress requirement and proxy

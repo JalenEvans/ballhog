@@ -10,10 +10,11 @@ samples — never wholesale copies of vendor payloads.
 | --- | --- | --- | --- |
 | `placeholder.json` | C-002 test-substrate placeholder | Synthetic (no vendor analogue) | `SubstrateSmokeTests` — proves the loader works |
 | `teams.commonteamyears.json` | Stats NBA v3 `commonteamyears` response (`LeagueID=00`) for the 30 active franchises, plus 3 historical rows (SEA/VAN/NJN) kept to exercise MAX_YEAR filtering | **SAMPLE** — hand-authored, not yet captured live | `StatsNbaProviderTests`, `BallhogClientEndToEndTests` (offline) |
+| `teams.commonteamyears.array.json` | Same 30 active + 3 historical rows wrapped in the v2-style single-element `resultSets` array | **SAMPLE** — hand-authored, not yet captured live | `StatsNbaProviderTests` — array/object parse parity |
 
-`teams.commonteamyears.json` is JSONC: the provenance comment and trailing commas are human
-aids. Tests re-emit it as strict JSON (`JsonNode.ToJsonString()`) so the provider only ever
-sees what the real Stats API would send.
+`teams.commonteamyears.json` and `teams.commonteamyears.array.json` are JSONC: the provenance
+comments are the human aid, and the loader tolerates trailing commas too. Tests re-emit them as
+strict JSON (`JsonNode.ToJsonString()`) so the provider only ever sees what the real Stats API would send.
 
 ### Pending live verification
 

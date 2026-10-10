@@ -14,32 +14,11 @@ namespace Ballhog.Providers;
 internal sealed class TeamYearsResponse
 {
     /// <summary>
-    /// Gets the single v3 result set carried by the response. The JSON property is the
-    /// camel-cased <c>resultSets</c> and, for this endpoint, is an object rather than an array.
+    /// Gets the raw <c>resultSets</c> member as a <see cref="JsonElement"/>. It is kept
+    /// untyped because the endpoint is inconsistent about the member's shape: the v3
+    /// documented form is a single object, while some responses emit a v2-style array with a
+    /// single element. The provider normalizes both shapes before mapping.
     /// </summary>
     [JsonPropertyName("resultSets")]
-    public TeamYearsResultSets? ResultSets { get; init; }
-}
-
-/// <summary>
-/// A Stats NBA v3 result set: its column names and its heterogeneous row data.
-/// </summary>
-internal sealed class TeamYearsResultSets
-{
-    /// <summary>
-    /// Gets the ordered column names. Used to locate <c>ABBREVIATION</c>, <c>TEAM_ID</c>,
-    /// and <c>MAX_YEAR</c> by name so mapping does not depend on a fixed column order.
-    /// </summary>
-    [JsonPropertyName("headers")]
-    public string[]? Headers { get; init; }
-
-    /// <summary>
-    /// Gets the rows. Each row is an array of <see cref="JsonElement"/> values because a
-    /// single row mixes kinds (strings and, for <c>TEAM_ID</c>, either a JSON number or a
-    /// numeric string). Deserializing per cell as <see cref="JsonElement"/> preserves each
-    /// cell's original kind so the provider can read it robustly without narrowing every
-    /// value to a single CLR type.
-    /// </summary>
-    [JsonPropertyName("rowSet")]
-    public JsonElement[][]? RowSet { get; init; }
+    public JsonElement? ResultSets { get; init; }
 }

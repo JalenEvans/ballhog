@@ -1,9 +1,9 @@
 # Ballhog Tests
 
-Test project for the Ballhog library (`net8.0` + `net10.0`). This chunk
-(`C-002`) only wires up the **test infrastructure substrate**; no library
-behavior tests exist yet. Later chunks (`C-003`..`C-008`) add tests for client,
-provider, and cache behavior one requirement at a time.
+Test project for the Ballhog library (`net8.0` + `net10.0`). The suite spans the
+full C-002..C-008 range: the offline test substrate plus behavior tests for the
+client, the Stats NBA provider, and the cache-aside composition, and a reflection
+architecture guard over the public surface.
 
 ## Stack
 
@@ -17,13 +17,9 @@ provider, and cache behavior one requirement at a time.
     filters, and runsettings behave exactly as documented below.
   - xUnit v3's `Assert.SkipUnless` gives us first-class **dynamic skipping** for
     live tests with no extra package.
-- **NetArchTest.Rules** — architecture-test package for later chunks. It is a
-  single small `netstandard2.0` assembly with no runtime dependencies
-  (ArchUnitNET is only available as a 2.4.0-alpha prerelease and pulls a much
-  heavier graph).
 - **Microsoft.Extensions.DependencyInjection**, **Microsoft.Extensions.Http**,
   **Microsoft.Extensions.TimeProvider.Testing** (`FakeTimeProvider`) — wired up
-  for later chunks that need DI, `IHttpClientFactory`, and deterministic time.
+  for the DI, `IHttpClientFactory`, and deterministic-time tests.
 
 All package versions are the latest stable that still target `net8.0` (so the
 same set works on both target frameworks).
@@ -104,19 +100,18 @@ dotnet test tests/Ballhog.Tests/Ballhog.Tests.csproj -c Release --filter "Catego
 - Every live test MUST carry `[Trait("Category", "Live")]` AND call
   `LiveTestGate.SkipUnlessEnabled()` as its first statement.
 - Keep the number of live tests small; they are the only tests that need
-  network and a real API key.
-- If a live test depends on configuration (base URL, key), read it from
-  environment variables through the gate/configuration helper, never hard-code
-  secrets.
+  network (stats.nba.com also requires residential egress — see the root
+  README).
+- Live tests here are keyless: the public stats.nba.com endpoint needs no API
+  key. If future live tests ever need other configuration, read it from
+  environment variables through the gate, never hard-code secrets.
 
 ## Architecture-test approach
 
-- Architecture rules are written with **NetArchTest.Rules** (later chunks).
-  Typical rules for this repo: public API classes live in the `Ballhog`
-  namespace, internal implementation stays hidden, nothing in
-  `src/Ballhog` references HTTP types outside the designated provider layer,
-  and `AssemblyMarker` remains the only public surface until a chunk explicitly
-  adds API.
+- Architecture rules are written with plain **`System.Reflection`** over the
+  compiled `Ballhog` assembly; no architecture-test package is needed. Typical
+  rules for this repo: only the approved types are public, and internal
+  implementation types stay hidden.
 - Rules examine the compiled `Ballhog` assembly (a project reference), so they
   run fully offline and against both TFMs.
 - Keep architecture tests coarse: assert the invariant that protects the design

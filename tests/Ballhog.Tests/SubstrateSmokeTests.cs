@@ -7,8 +7,9 @@ namespace Ballhog.Tests;
 
 /// <summary>
 /// Harness smoke tests for the C-002 test substrate. They prove the offline
-/// infrastructure works (fixture loading + DI container) without exercising any
-/// library behavior — the library intentionally has no public API yet.
+/// infrastructure works (fixture loading + DI container) independently of any library
+/// behavior; the completed S1 public surface is covered by the dedicated client,
+/// provider, and architecture suites.
 /// </summary>
 public sealed class SubstrateSmokeTests
 {
