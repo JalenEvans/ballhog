@@ -1,0 +1,34 @@
+<Project>
+
+  <!--
+    Common build settings shared by every C# project in this repository.
+
+    The Condition restricts these properties to actual .csproj files so that
+    non-project MSBuild files that import this (e.g. via Directory.Build.props
+    conventions) are never broken by language/analyzer settings.
+  -->
+  <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.csproj'">
+
+    <!-- Always compile against the latest C# language version supported by the SDK. -->
+    <LangVersion>latest</LangVersion>
+
+    <!-- Enable nullable reference types and implicit global usings project-wide. -->
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- Treat compiler and analyzer warnings as build errors. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!-- Enable .NET code-quality analyzers at the latest analysis level. -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+
+    <!-- Produce XML documentation so public API docs flow into the NuGet package. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- Deterministic builds for reproducible output. -->
+    <Deterministic>true</Deterministic>
+
+  </PropertyGroup>
+
+</Project>
