@@ -26,6 +26,8 @@ same set works on both target frameworks).
 
 ## Running the offline suite
 
+The commands below are run from the package root: `Ballhog.Basketball/`.
+
 Live tests (marked `[Trait("Category", "Live")]`) are excluded **by default**:
 
 ```bash

@@ -100,7 +100,7 @@ stages:
 #   1. Run/pull the 'packages' artifact produced above (that is the dry run).
 #   2. Verify the .nupkg contents (lib/net8.0 + lib/net10.0, XML docs, README,
 #      nuspec license expression MIT, attribution in Description).
-#   3. Create a NuGet.org API key scoped to the 'ballhog' package, store it as a
+#   3. Create a NuGet.org API key scoped to the 'BallhogBasketball' package, store it as a
 #      secret pipeline variable named NUGET_API_KEY (secret, not checked in).
 #   4. Run the push below as a manual pipeline against a tagged release build:
 #

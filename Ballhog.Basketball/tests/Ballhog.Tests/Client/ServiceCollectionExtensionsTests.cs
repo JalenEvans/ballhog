@@ -22,7 +22,7 @@ namespace Ballhog.Tests.Client;
 public sealed class ServiceCollectionExtensionsTests
 {
     [Fact]
-    public void AddBallhog_registers_a_resolvable_IBallhogClient()
+    public void AddBallhogBasketball_registers_a_resolvable_IBallhogClient()
     {
         using ServiceProvider provider = new ServiceCollection().AddBallhogBasketball().BuildServiceProvider();
 
@@ -33,7 +33,7 @@ public sealed class ServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public async Task AddBallhog_client_reads_through_the_registered_IStatsProvider()
+    public async Task AddBallhogBasketball_client_reads_through_the_registered_IStatsProvider()
     {
         var fake = new FakeStatsProvider(TestTeams.All);
         var services = new ServiceCollection();
@@ -52,7 +52,7 @@ public sealed class ServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddBallhog_applies_the_configure_callback()
+    public void AddBallhogBasketball_applies_the_configure_callback()
     {
         var proxy = new Uri("http://localhost:8888");
         using ServiceProvider provider = new ServiceCollection()
@@ -72,7 +72,7 @@ public sealed class ServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddBallhog_registers_sane_default_options()
+    public void AddBallhogBasketball_registers_sane_default_options()
     {
         using ServiceProvider provider = new ServiceCollection().AddBallhogBasketball().BuildServiceProvider();
 
