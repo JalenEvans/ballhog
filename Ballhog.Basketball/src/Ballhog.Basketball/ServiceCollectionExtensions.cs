@@ -28,8 +28,17 @@ public static class ServiceCollectionExtensions
     /// </param>
     /// <returns>The same <see cref="IServiceCollection"/> instance, so registrations can be chained.</returns>
     /// <remarks>
+    /// <para>
     /// Registration wires the typed <see cref="IBallhogClient"/> over an HTTP-backed provider built
     /// on <c>IHttpClientFactory</c>, together with cache-aside storage and source pacing.
+    /// </para>
+    /// <para>
+    /// <see cref="IStatsProvider"/> is the swappable <em>source</em> seam: the default source is
+    /// the HTTP-backed NBA provider. The SDK always applies its cache-aside TTL, single-flight
+    /// de-duplication, and shared source pacing <em>on top</em> of whatever source is registered,
+    /// so pre-registering or <c>Replace</c>-ing <see cref="IStatsProvider"/> with a custom
+    /// implementation keeps those layers intact rather than displacing them.
+    /// </para>
     /// </remarks>
     public static IServiceCollection AddBallhogBasketball(
         this IServiceCollection services,
@@ -74,6 +83,11 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient<StatsNbaProvider>((_, client) =>
             {
                 client.BaseAddress = new Uri("https://stats.nba.com");
+
+                // The retry handler owns per-attempt timing: HttpClient.Timeout cancels a linked
+                // token the handler cannot distinguish from caller cancellation, so leave it
+                // infinite and let HttpRetryHandler enforce BallhogHttpOptions.RequestTimeout.
+                client.Timeout = System.Threading.Timeout.InfiniteTimeSpan;
             })
             .ConfigurePrimaryHttpMessageHandler(sp =>
             {
@@ -107,23 +121,30 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredService<TimeProvider>(),
                 sp.GetRequiredService<BallhogOptions>().Http));
 
-        // Default provider: the HTTP-backed StatsNbaProvider wrapped in the cache-aside/pacing
-        // decorator. It is transient (not singleton) so each resolution gets the typed client
-        // from IHttpClientFactory, letting the factory rotate the underlying HttpClient,
-        // SocketsHttpHandler, and proxy over time. TryAddTransient keeps the seam swappable: a
-        // consumer may pre-register or Replace(IStatsProvider) with an alternative, and this
-        // registration respects that. The cache and pacer it reads remain singletons, so shared
-        // TTL and pacing are preserved across the transient instances.
-        services.TryAddTransient<IStatsProvider>(sp => new CachingStatsProvider(
-            sp.GetRequiredService<StatsNbaProvider>(),
-            sp.GetRequiredService<BallhogCache>(),
-            sp.GetRequiredService<SourcePacer>(),
-            sp.GetRequiredService<BallhogOptions>().TeamsCacheTtl));
+        // IStatsProvider is the swappable SOURCE seam. This registration resolves the raw
+        // HTTP-backed source (StatsNbaProvider); a consumer may pre-register or
+        // Replace(IStatsProvider) with an alternative, and this registration respects that.
+        // The SDK's cache-aside TTL, single-flight, and shared pacing are NOT part of this
+        // registration: they are always applied on top, by the client factory below, so
+        // swapping the source never displaces those layers.
+        services.TryAddTransient<IStatsProvider>(sp => sp.GetRequiredService<StatsNbaProvider>());
 
-        // The client facade is stateless, so it is transient too: each resolution observes the
-        // current provider (and therefore the factory-rotated transport) rather than capturing
-        // the first one for the container's lifetime.
-        services.TryAddTransient<IBallhogClient, BallhogClient>();
+        // The client facade owns the decorated chain: it wraps whatever IStatsProvider source is
+        // registered (including a consumer-replaced one) in the cache-aside/pacing decorator, so
+        // the SDK layers are preserved regardless of the source. It is transient (not singleton)
+        // so each resolution gets the typed client from IHttpClientFactory, letting the factory
+        // rotate the underlying HttpClient, SocketsHttpHandler, and proxy over time. The cache and
+        // pacer it reads remain singletons, so shared TTL and pacing are preserved across the
+        // transient instances.
+        services.TryAddTransient<IBallhogClient>(sp =>
+        {
+            BallhogOptions options = sp.GetRequiredService<BallhogOptions>();
+            return new BallhogClient(new CachingStatsProvider(
+                sp.GetRequiredService<IStatsProvider>(),
+                sp.GetRequiredService<BallhogCache>(),
+                sp.GetRequiredService<SourcePacer>(),
+                options.TeamsCacheTtl));
+        });
 
         return services;
     }

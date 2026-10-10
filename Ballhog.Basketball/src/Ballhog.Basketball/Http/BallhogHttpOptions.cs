@@ -18,6 +18,19 @@ public sealed class BallhogHttpOptions
     public Uri? Proxy { get; set; }
 
     /// <summary>
+    /// Gets or sets the per-attempt timeout applied to a single outbound request attempt
+    /// before it is considered failed and eligible for retry.
+    /// </summary>
+    /// <remarks>
+    /// When an attempt does not complete within this interval it is treated as a transient
+    /// failure, so it is retried with backoff subject to <see cref="MaxRetryAttempts"/>;
+    /// once every attempt has timed out the request surfaces as a
+    /// <see cref="BallhogHttpException"/>. The timeout is scheduled through the injected
+    /// <see cref="System.TimeProvider"/>, so it stays deterministic in tests.
+    /// </remarks>
+    public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>
     /// Gets or sets the maximum number of attempts (including the initial attempt)
     /// made for a single request before it is allowed to fail.
     /// </summary>

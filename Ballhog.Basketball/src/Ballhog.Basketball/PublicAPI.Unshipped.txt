@@ -22,6 +22,8 @@ Ballhog.Basketball.Http.BallhogHttpOptions.MaxRetryAttempts.get -> int
 Ballhog.Basketball.Http.BallhogHttpOptions.MaxRetryAttempts.set -> void
 Ballhog.Basketball.Http.BallhogHttpOptions.Proxy.get -> System.Uri?
 Ballhog.Basketball.Http.BallhogHttpOptions.Proxy.set -> void
+Ballhog.Basketball.Http.BallhogHttpOptions.RequestTimeout.get -> System.TimeSpan
+Ballhog.Basketball.Http.BallhogHttpOptions.RequestTimeout.set -> void
 Ballhog.Basketball.Http.BallhogHttpOptions.RetryBaseDelay.get -> System.TimeSpan
 Ballhog.Basketball.Http.BallhogHttpOptions.RetryBaseDelay.set -> void
 Ballhog.Basketball.Http.BallhogHttpOptions.RetryMaxDelay.get -> System.TimeSpan
