@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      Console sample. Single-targets net10.0 (the newest SDK) because it is a runnable
+      demonstration, not a shipped library. Nullable/ImplicitUsings/LangVersion and the
+      warnings-as-errors policy are inherited from Directory.Build.props.
+    -->
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+
+    <!-- A sample is never packed or published to NuGet. -->
+    <IsPackable>false</IsPackable>
+
+    <!--
+      Console apps are not part of any shipped API surface, so opt out of the repo-wide
+      GenerateDocumentationFile=true (same rationale as the test project).
+    -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Ballhog/Ballhog.csproj" />
+  </ItemGroup>
+
+</Project>

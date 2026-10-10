@@ -77,7 +77,19 @@ public static class ServiceCollectionExtensions
             .ConfigurePrimaryHttpMessageHandler(sp =>
             {
                 var options = sp.GetRequiredService<BallhogOptions>();
-                var handler = new SocketsHttpHandler();
+
+                var handler = new SocketsHttpHandler
+                {
+                    // NbaRequestHeadersHandler advertises "gzip, deflate, br" on the request, but
+                    // that header is applied at the delegating-handler level; decoding the response
+                    // body is the transport's job. AutomaticDecompression.All lets the primary
+                    // SocketsHttpHandler decompress those encodings so the provider always reads
+                    // plaintext; without it, a Content-Encoding response would reach the caller
+                    // still compressed. This is a live-path concern only: the offline
+                    // header-contract tests assert on the applied request header and never reach
+                    // this primary handler, so they are unaffected.
+                    AutomaticDecompression = DecompressionMethods.All,
+                };
                 if (options.Http.Proxy is not null)
                 {
                     handler.Proxy = new WebProxy(options.Http.Proxy);
